@@ -1,0 +1,67 @@
+version: 2.1
+
+executors:
+  docker-executor:
+    docker:
+      - image: docker
+    environment:
+      OVH_IMAGE: 62q52315.gra7.container-registry.ovh.net/public/infra-slackclient
+      QUAY_IMAGE: quay.io/tictrac/infra-slackclient
+
+jobs:
+  build:
+    executor:
+      name: docker-executor
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Build Docker image
+          command: docker build -t $QUAY_IMAGE:$CIRCLE_SHA1 .
+      - run:
+          name: Prepare Docker Image tags
+          command: |
+            if [[ "$CIRCLE_TAG" != "" ]]; then
+              echo "Preparing Docker tags for Git Tag"
+              docker tag $QUAY_IMAGE:$CIRCLE_SHA1 $QUAY_IMAGE:$CIRCLE_TAG
+              docker tag $QUAY_IMAGE:$CIRCLE_SHA1 $QUAY_IMAGE:latest
+              docker tag $QUAY_IMAGE:$CIRCLE_SHA1 $OVH_IMAGE:$CIRCLE_TAG
+              docker tag $QUAY_IMAGE:$CIRCLE_SHA1 $OVH_IMAGE:latest
+            fi
+      - run:
+          name: Upload Docker image
+          command: |
+            if [[ "$CIRCLE_TAG" != "" ]]; then
+              echo "Uploading Docker tags for Git Tag"
+              docker login -u $QUAY_USERNAME -p $QUAY_PASSWORD quay.io
+              docker push $QUAY_IMAGE:$CIRCLE_TAG
+              docker push $QUAY_IMAGE:latest
+              docker login -u $OVH_USERNAME -p $OVH_PASSWORD 62q52315.gra7.container-registry.ovh.net
+              docker push $OVH_IMAGE:$CIRCLE_TAG
+              docker push $OVH_IMAGE:latest
+            fi
+  slack-notify:
+    docker:
+      - image: 'circleci/python'
+    steps:
+      - slack/status
+
+workflows:
+  tictrac:
+    jobs:
+      - build:
+          name: Docker build
+          context: Infrastructure
+          filters:
+            tags:
+              only: /^.*/
+            branches:
+              only: /.*/
+      - slack-notify:
+          name: Notify Slack
+          requires:
+            - Docker build
+
+orbs:
+  slack: circleci/slack@3.4.2
