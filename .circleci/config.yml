@@ -26,11 +26,11 @@ jobs:
           command: |
             if [[ "$CIRCLE_TAG" != "" ]]; then
               echo "Preparing Docker tags and uploading Docker images"
-                docker login -u $JFROG_USERNAME -p $JFROG_PASSWORD tictrac.jfrog.io
-                docker tag $JFROG_IMAGE:$CIRCLE_SHA1 $JFROG_IMAGE:$CIRCLE_TAG
-                docker push $JFROG_IMAGE:$CIRCLE_TAG
-              else
-                echo "Docker images uploading enabled only for Git Tag event"
+              docker login -u $JFROG_USERNAME -p $JFROG_PASSWORD tictrac.jfrog.io
+              docker tag $JFROG_IMAGE:$CIRCLE_SHA1 $JFROG_IMAGE:$CIRCLE_TAG
+              docker push $JFROG_IMAGE:$CIRCLE_TAG
+            else
+              echo "Docker images uploading enabled only for Git Tag event"
             fi
       - slack/status
 
