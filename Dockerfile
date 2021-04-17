@@ -5,10 +5,7 @@ MAINTAINER developer@tictrac.com
 WORKDIR /app
 ADD . /app/
 
-RUN apk update
-RUN apk upgrade
-RUN apk add bash
-RUN apk add build-base
+RUN apk update && apk upgrade && apk add bash build-base
 
 RUN pip install -r requirements.txt
 
