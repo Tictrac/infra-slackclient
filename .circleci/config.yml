@@ -5,8 +5,7 @@ executors:
     docker:
       - image: docker
     environment:
-      OVH_IMAGE: 62q52315.gra7.container-registry.ovh.net/public/infra-slackclient
-      QUAY_IMAGE: quay.io/tictrac/infra-slackclient
+      JFROG_IMAGE: tictrac.jfrog.io/tictrac/infra-slackclient
 
 jobs:
   build:
@@ -17,34 +16,22 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
+          name: Install dependencies
+          command: apk add bash curl
+      - run:
           name: Build Docker image
-          command: docker build -t $QUAY_IMAGE:$CIRCLE_SHA1 .
+          command: docker build -t $JFROG_IMAGE:$CIRCLE_SHA1 .
       - run:
-          name: Prepare Docker Image tags
+          name: Prepare and Upload Docker images
           command: |
             if [[ "$CIRCLE_TAG" != "" ]]; then
-              echo "Preparing Docker tags for Git Tag"
-              docker tag $QUAY_IMAGE:$CIRCLE_SHA1 $QUAY_IMAGE:$CIRCLE_TAG
-              docker tag $QUAY_IMAGE:$CIRCLE_SHA1 $QUAY_IMAGE:latest
-              docker tag $QUAY_IMAGE:$CIRCLE_SHA1 $OVH_IMAGE:$CIRCLE_TAG
-              docker tag $QUAY_IMAGE:$CIRCLE_SHA1 $OVH_IMAGE:latest
+              echo "Preparing Docker tags and uploading Docker images"
+              docker login -u $JFROG_USERNAME -p $JFROG_PASSWORD tictrac.jfrog.io
+              docker tag $JFROG_IMAGE:$CIRCLE_SHA1 $JFROG_IMAGE:$CIRCLE_TAG
+              docker push $JFROG_IMAGE:$CIRCLE_TAG
+            else
+              echo "Docker images uploading enabled only for Git Tag event"
             fi
-      - run:
-          name: Upload Docker image
-          command: |
-            if [[ "$CIRCLE_TAG" != "" ]]; then
-              echo "Uploading Docker tags for Git Tag"
-              docker login -u $QUAY_USERNAME -p $QUAY_PASSWORD quay.io
-              docker push $QUAY_IMAGE:$CIRCLE_TAG
-              docker push $QUAY_IMAGE:latest
-              docker login -u $OVH_USERNAME -p $OVH_PASSWORD 62q52315.gra7.container-registry.ovh.net
-              docker push $OVH_IMAGE:$CIRCLE_TAG
-              docker push $OVH_IMAGE:latest
-            fi
-  slack-notify:
-    docker:
-      - image: 'circleci/python'
-    steps:
       - slack/status
 
 workflows:
@@ -58,10 +45,6 @@ workflows:
               only: /^.*/
             branches:
               only: /.*/
-      - slack-notify:
-          name: Notify Slack
-          requires:
-            - Docker build
 
 orbs:
   slack: circleci/slack@3.4.2

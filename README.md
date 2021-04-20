@@ -44,15 +44,10 @@ docker run --rm infra-slackclient:tag <script-args>
 ```
 
 Build and push to docker registry  
-OVH:
-```
-docker build -t infra-slackclient:latest -t 62q52315.gra7.container-registry.ovh.net/public/infra-slackclient:latest
-docker push 62q52315.gra7.container-registry.ovh.net/public/infra-slackclient:latest
-```
 
-Quay.io:
+JFrog:
 
 ```
-docker build -t infra-slackclient:latest -t quay.io/tictrac/infra-slackclient:latest
-docker push quay.io/tictrac/infra-slackclient:latest
+docker build -t tictrac.jfrog.io/tictrac/infra-slackclient:latest
+docker push tictrac.jfrog.io/tictrac/infra-slackclient:latest
 ```
